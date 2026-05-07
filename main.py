@@ -1,53 +1,54 @@
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
-from flask import Flask
 import threading
+import telebot
+from flask import Flask
 
-# ================== Your Simple Bot Code ==================
-BOT_TOKEN = os.getenv("BOT_TOKEN")   # ← Must be in Render Environment
+# ==========================================
+# 1. Initialize the Dummy Web Server (Flask)
+# ==========================================
+app = Flask(__name__)
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("hi")
-
-# ================== Flask for Render ==================
-flask_app = Flask(__name__)
-
-@flask_app.route('/')
+@app.route('/')
 def home():
-    return "Bot is Running ✅"
+    print("Someone pinged the web server!")
+    return "HTTP Ping received. The container is awake."
 
-@flask_app.route('/health')
-def health():
-    return "OK", 200
+def run_web_server():
+    # Render assigns a dynamic PORT, default to 3000 for local Termux testing
+    port = int(os.environ.get('PORT', 3000))
+    # host='0.0.0.0' is mathematically required by Render to expose the port to the internet
+    app.run(host='0.0.0.0', port=port)
+
+
+# ==========================================
+# 2. Initialize the Telegram Bot (Polling)
+# ==========================================
+# Replace with your actual BotFather token
+TOKEN = '8685249061:AAFCFZIbzRoU_yyYPRcsj4ms36H4FZSeJzQ'
+bot = telebot.TeleBot(TOKEN)
+
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    chat_id = message.chat.id
+    username = message.from_user.username or message.from_user.first_name
+    
+    # Send response confirming RAM execution
+    bot.reply_to(message, f"System is awake. Received: \"{message.text}\"")
+    print(f"Responded to message from {username}")
 
 def run_bot():
-    print("🚀 Starting Telegram Bot (Polling)...")
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.run_polling(drop_pending_updates=True)
+    print("Bot is polling Telegram servers...")
+    # infinity_polling prevents the bot from crashing if Telegram's API has a micro-outage
+    bot.infinity_polling()
 
-# ================== Start Everything ==================
-if __name__ == "__main__":
-    PORT = int(os.environ.get("PORT", 8080))
+
+# ==========================================
+# 3. The Execution Matrix (Threading)
+# ==========================================
+if __name__ == '__main__':
+    # We spin up the Flask web server in an isolated background thread
+    web_thread = threading.Thread(target=run_web_server)
+    web_thread.start()
     
-    # Start bot in background
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    print(f"🌐 Flask server running on port {PORT}")
-    flask_app.run(host="0.0.0.0", port=PORT)
-if __name__ == "__main__":
-    # Run bot in background thread
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    print(f"🌐 Starting Flask server on port {PORT}...")
-    flask_app.run(host="0.0.0.0", port=PORT)
-if __name__ == "__main__":
-    # Run bot in background thread
-    bot_thread = threading.Thread(target=run_bot, daemon=True)
-    bot_thread.start()
-    
-    print(f"🌐 Starting Flask server on port {PORT}...")
-    flask_app.run(host="0.0.0.0", port=PORT)
+    # We run the heavy bot polling loop on the main thread
+    run_bot()
