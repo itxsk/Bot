@@ -3,7 +3,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 import os
 import sys
 
-BOT_TOKEN = os.getenv("8685249061:AAFCFZIbzRoU_yyYPRcsj4ms36H4FZSeJzQ")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
     print("❌ ERROR: BOT_TOKEN environment variable is missing!")
