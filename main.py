@@ -42,3 +42,10 @@ if __name__ == "__main__":
     
     print(f"🌐 Starting Flask server on port {PORT}...")
     flask_app.run(host="0.0.0.0", port=PORT)
+if __name__ == "__main__":
+    # Run bot in background thread
+    bot_thread = threading.Thread(target=run_bot, daemon=True)
+    bot_thread.start()
+    
+    print(f"🌐 Starting Flask server on port {PORT}...")
+    flask_app.run(host="0.0.0.0", port=PORT)
